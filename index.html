@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Christian Gimkit PRO+</title>
+<style>
+body{margin:0;font-family:Arial;background:#0f172a;color:#fff;display:flex;justify-content:center;align-items:center;height:100vh}
+.game{background:#1e293b;padding:20px;border-radius:15px;width:450px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,0.5)}
+h2{margin-bottom:10px}
+button{width:100%;padding:12px;margin-top:8px;border:none;border-radius:10px;background:#6366f1;color:white;font-size:15px;cursor:pointer;transition:.2s}
+button:hover{background:#4338ca}
+.correct{background:#22c55e !important}
+.wrong{background:#ef4444 !important}
+.hidden{display:none}
+.stats{margin-bottom:10px;font-size:14px}
+.progress{height:10px;background:#334155;border-radius:5px;overflow:hidden;margin-bottom:10px}
+.bar{height:100%;width:0%;background:#22c55e}
+.feedback{margin-top:10px;padding:10px;border-radius:10px;background:#111827}
+.shop button{background:#16a34a}
+</style>
+</head>
+<body>
+<div class="game">
+<h2>🔥 Christian Gimkit PRO+</h2>
+
+
+<div id="menu">
+<input id="name" placeholder="Enter name" style="width:100%;padding:8px;margin-bottom:10px"/>
+<button onclick="start()">Start Game</button>
+</div>
+
+<div id="game" class="hidden">
+<div class="stats">
+👤 <span id="player"></span><br>
+💰 Coins: <span id="coins">0</span> | ❤️ Lives: <span id="lives">3</span> | 🔥 Streak: <span id="streak">0</span> | ⭐ Level <span id="level">1</span>
+</div>
+<div class="progress"><div id="xpBar" class="bar"></div></div>
+<p id="question"></p>
+<div id="answers"></div>
+<div id="feedback" class="feedback hidden"></div>
+<button id="nextBtn" class="hidden" onclick="nextQuestion()">Next</button>
+
+<div class="shop">
+<h3>🛒 Shop</h3>
+<button onclick="buy('life')">+1 Life (80)</button>
+<button onclick="buy('double')">2x Coins (60)</button>
+<button onclick="buy('shield')">Shield (70)</button>
+<button onclick="buy('freeze')">Freeze (50)</button>
+<button onclick="buy('auto')">Auto Coins/sec (120)</button>
+</div>
+</div>
+</div>
+
+
+<script>
+
+const qs=[
+"Who built the ark?|Noah|Moses|David|Paul|Noah|Genesis 6:14",
+"Who denied Jesus 3 times?|Peter|John|Paul|Luke|Peter|Luke 22:61",
+"Where was Jesus born?|Bethlehem|Rome|Nazareth|Egypt|Bethlehem|Micah 5:2",
+"Who killed Goliath?|David|Saul|Moses|Peter|David|1 Samuel 17:50",
+"First book of Bible?|Genesis|Exodus|Matthew|Psalms|Genesis|Genesis 1:1",
+"Last book of Bible?|Revelation|Acts|Romans|Jude|Revelation|Revelation 22:21",
+"Who was thrown into the lions den?|Daniel|Joseph|Moses|Peter|Daniel|Daniel 6:22",
+"Who led Israelites out of Egypt?|Moses|Aaron|Joshua|David|Moses|Exodus 14:21",
+"How many disciples did Jesus have?|12|10|7|5|12|Matthew 10:1",
+"Who betrayed Jesus?|Judas|Peter|John|Paul|Judas|Matthew 26:14",
+"Who was the wisest king?|Solomon|David|Saul|Hezekiah|Solomon|1 Kings 3:12",
+"What did Jesus turn water into?|Wine|Milk|Oil|Juice|Wine|John 2:9",
+"Who was swallowed by a fish?|Jonah|Peter|John|James|Jonah|Jonah 1:17",
+"Who baptized Jesus?|John the Baptist|Peter|Paul|James|John the Baptist|Matthew 3:13",
+"Where was Jesus crucified?|Golgotha|Nazareth|Bethlehem|Rome|Golgotha|Matthew 27:33",
+"What is the shortest verse?|Jesus wept|God is love|Pray always|Rejoice|Jesus wept|John 11:35",
+"Who doubted Jesus resurrection?|Thomas|Peter|James|John|Thomas|John 20:27",
+"Who fed 5000 people?|Jesus|Peter|Paul|John|Jesus|Matthew 14:19",
+"Who climbed tree to see Jesus?|Zacchaeus|Peter|Paul|John|Zacchaeus|Luke 19:4"
+];
+
+let questionPool=[];
+
+
+let coins=0,lives=3,streak=0,level=1,xp=0,maxXP=100;
+let double=false,shield=false,auto=0;
+let currentCorrect="",currentVerse="";
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+
+function resetPool(){
+questionPool = shuffle([...qs]);
+}
+function start(){
+document.getElementById('menu').classList.add('hidden');
+document.getElementById('game').classList.remove('hidden');
+document.getElementById('player').textContent=document.getElementById('name').value||"Player";
+setInterval(()=>{coins+=auto;updateUI();},1000);
+resetPool();
+nextQuestion();
+}
+
+function nextQuestion(){
+if(questionPool.length===0){
+resetPool(); // reset when all used
+}
+
+
+let parts=questionPool.pop().split('|');
+let opts=shuffle(parts.slice(1,5));
+currentCorrect=parts[5];
+currentVerse=parts[6];
+
+document.getElementById('question').textContent=parts[0];
+
+let aEl=document.getElementById('answers');
+aEl.innerHTML="";
+opts.forEach(opt=>{
+let b=document.createElement('button');
+b.textContent=opt;
+b.onclick=()=>answer(b,opt);
+aEl.appendChild(b);
+});
+
+document.getElementById('feedback').classList.add('hidden');
+document.getElementById('nextBtn').classList.add('hidden');
+}
+
+function answer(btn,opt){
+let buttons=document.querySelectorAll('#answers button');
+buttons.forEach(b=>b.disabled=true);
+
+let feedback=document.getElementById('feedback');
+
+if(opt===currentCorrect){
+btn.classList.add('correct');
+streak++;
+let gain=20+streak*3;
+if(double) gain*=2;
+coins+=gain;
+addXP(15);
+feedback.innerHTML="✅ <b>Correct!</b><br><small>"+currentVerse+"</small>";
+}else{
+btn.classList.add('wrong');
+buttons.forEach(b=>{if(b.textContent===currentCorrect) b.classList.add('correct');});
+if(!shield){lives--;} else shield=false;
+streak=0;
+feedback.innerHTML="❌ <b>Wrong!</b><br>Correct: "+currentCorrect+"<br><small>"+currentVerse+"</small>";
+}
+
+if(lives<=0){endGame();return;}
+
+feedback.classList.remove('hidden');
+document.getElementById('nextBtn').classList.remove('hidden');
+updateUI();
+}
+
+function addXP(v){xp+=v;if(xp>=maxXP){xp=0;level++;maxXP+=50;}updateUI();}
+
+function buy(t){
+if(t==='life'&&coins>=80){coins-=80;lives++;}
+if(t==='double'&&coins>=60){coins-=60;double=true;setTimeout(()=>double=false,10000);}
+if(t==='shield'&&coins>=70){coins-=70;shield=true;}
+if(t==='auto'&&coins>=120){coins-=120;auto+=2;}
+updateUI();
+}
+
+function updateUI(){
+document.getElementById('coins').textContent=coins;
+document.getElementById('lives').textContent=lives;
+document.getElementById('streak').textContent=streak;
+document.getElementById('level').textContent=level;
+document.getElementById('xpBar').style.width=(xp/maxXP*100)+"%";
+}
+
+function endGame(){
+alert("Game Over! Coins: "+coins+" | Level: "+level);
+location.reload();
+}
+
+</script>
+</body>
